@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<gatt>
+	<service uuid="1800">
+		<characteristic uuid="2a00">
+			<properties read="true" const="true" />
+			<value>BGM-Luggage</value>
+		</characteristic>
+		
+		<characteristic uuid="2a01">
+			<properties read="true" const="true" />
+			<value type="hex">512</value>
+		</characteristic>
+		
+	</service>
+
+	<!-- Device Information Service -->
+	<service uuid="180A">
+
+		<description>Device Information Service</description>
+	
+		<!-- Manufacturer name string -->
+		<characteristic uuid="2A29">
+			<properties read="true" const="true" />
+			<value>Bluetooth in Action</value>
+		</characteristic>
+
+		<!-- Model number string -->
+		<characteristic uuid="2A24">
+			<properties read="true" const="true" />
+			<value>LuggageSafe</value>
+		</characteristic>
+
+		<!-- System ID string -->
+		<characteristic uuid="2A23">
+			<properties read="true" const="true" />
+			<value type="hex">000780000047</value>
+		</characteristic>
+
+	</service>
+
+	<!-- Link Loss Service -->
+	<service uuid="1803" advertise="true" >
+        <description>Link Loss</description>
+	
+		<!-- Alert Level -->	
+		<characteristic uuid="2a06" id="xgatt_lloss">
+			<properties read="true" write="true" />
+			<value length="1" />
+		</characteristic>
+		
+     </service>	
+	
+</gatt>
