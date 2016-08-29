@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<hardware>	
+	<!-- I2C configuration -->
+	<!-- Settings: SCL pin is PC11 and SDA pin is PC10 -->
+	<i2c scl_pin="PC11" sda_pin="PC10"/>
+	
+</hardware>
+

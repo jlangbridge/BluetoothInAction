@@ -1,0 +1,124 @@
+# ================================================================
+# Connected Minecraft Mod
+# ----------------------------------------------------------------
+# 
+# CHANGELOG:
+# 
+# 1.0 - Initial release
+# ================================================================
+
+# Variable definitions
+
+const PCA9685_MODE1 = 0
+const MODULE_ADDR = $41
+const PCA9685_PRESCALE = $FE
+
+const LED0_ON_L = $6
+const LED0_ON_H = $7
+const LED0_OFF_L = $8
+const LED0_OFF_H = $9
+
+# Timer channels
+const TIMER_CONFIG = 0
+const TIMER_PWM = 1
+
+dim result, len, data, phase, data_len, data_data, a, r
+dim transdata(8)
+
+# Boot event listener - Generated when the module is started
+event system_boot(major,minor,patch,build,bootloader,hw)
+
+	call hardware_configure_gpio(5,6,4,1) #PF6, LED1
+	call hardware_write_gpio(5,$40,0)
+	
+	# First things first, reset the board, get it up and running
+	
+	# Mode 1
+	transdata(0:1) = PCA9685_MODE1
+	transdata(1:1) = $0
+	call hardware_write_i2c(0,MODULE_ADDR,2,transdata(0:2))
+	call hardware_stop_i2c(0)
+	
+	transdata(0:1) = PCA9685_MODE1
+	transdata(1:1) = $16
+	call hardware_write_i2c(0,MODULE_ADDR,2,transdata(0:2))
+	call hardware_stop_i2c(0)
+	
+	transdata(0:1) = PCA9685_PRESCALE
+	transdata(1:1) = $3
+	call hardware_write_i2c(0,MODULE_ADDR,2,transdata(0:2))
+	call hardware_stop_i2c(0)
+	
+	transdata(0:1) = PCA9685_MODE1
+	transdata(1:1) = $0
+	call hardware_write_i2c(0,MODULE_ADDR,2,transdata(0:2))
+	call hardware_stop_i2c(0)
+	
+	
+	# Read GPIO status (Button PB1)
+	call hardware_read_gpio(5,$80)(r,data)
+	if(data)
+		# Pushbutton wasn’t pressed, normal mode
+		call le_gap_set_mode(0,2)
+	else
+		# Pushbutton was pressed, enable advertising and bonding
+		call le_gap_set_mode(1,2)
+		call sm_set_bondable_mode(1)
+	end if
+
+end 
+
+event le_connection_opened(address,address_type,master,connection,bonding)
+	call hardware_set_soft_timer(32768,TIMER_CONFIG,1)
+end
+
+event le_connection_closed(reason,connection)
+	# The user disconnected. Kill the timer
+	call hardware_set_soft_timer(0,TIMER_CONFIG,0)
+	
+	# Now set everything to zero
+	
+	a = 0
+	while a<16
+		transdata(0:1) = ($06 + a*4) #LED0_ON_L register
+		transdata(1:1) = $0 #LED0_ON_L
+		transdata(2:1) = $0 #LED0_ON_H
+		transdata(3:1) = $0 #LED0_OFF_L
+		transdata(4:1) = $0 #LED0_OFF_H
+		call hardware_write_i2c(0,MODULE_ADDR,5,transdata(0:5))
+		call hardware_stop_i2c(0)
+		a = a + 1
+	end while	
+end
+
+
+# Timer
+event hardware_soft_timer(handle)
+	if handle=TIMER_CONFIG then
+		#Configuration done
+		transdata(0:1) = PCA9685_MODE1
+		transdata(1:1) = 161
+		call hardware_write_i2c(0,MODULE_ADDR,2,transdata(0:2))
+		call hardware_stop_i2c(0)
+		
+		call hardware_set_soft_timer(819,TIMER_PWM,0)
+	end if
+	
+	if handle=TIMER_PWM then
+		# Nice blinky things!
+		a = 0
+		while a<16
+			transdata(0:1) = ($06 + a*4) #LED0_ON_L register
+			transdata(1:1) = $0 #LED0_ON_L
+			transdata(2:1) = $0 #LED0_ON_H
+			call system_get_random_data(1)(result,data_len, data_data)
+			data_data = 2048 + (data_data * 8)
+			transdata(3:1) = data_data & 255 #LED0_OFF_L
+			transdata(4:1) = data_data >> 8 #LED0_OFF_H
+			call hardware_write_i2c(0,MODULE_ADDR,5,transdata(0:5))
+			call hardware_stop_i2c(0)
+			a = a + 1
+		end while
+	end if
+
+end
